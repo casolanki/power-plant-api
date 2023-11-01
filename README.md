@@ -1,4 +1,4 @@
-# Power Plant Production Plan API
+# Power Plant API
 
 This API calculates the power production plan for a set of power plants based on load and fuel cost considerations. It considers different power plant types, their efficiency, Pmin, and Pmax constraints, as well as the cost of fuel.
 
