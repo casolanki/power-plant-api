@@ -34,7 +34,7 @@ namespace API.Services
             foreach (var plant in gasAndTurbojetPlants)
             {
                 decimal efficiency = plant.Efficiency;
-                decimal costPerMWh = 0;
+                decimal costPerMWh = 0.0m;
 
                 if (plant.Type == PowerPlantType.gasfired.ToString())
                 {
@@ -45,7 +45,7 @@ namespace API.Services
                     costPerMWh = payload.Fuels.Kerosine / efficiency;
                 }
 
-                decimal power = 0;
+                decimal power = 0.0m;
 
                 if (requiredLoad > 0)
                 {
@@ -56,7 +56,7 @@ namespace API.Services
                 productionPlan.Add(new PowerPlantOutput
                 {
                     Name = plant.Name,
-                    P = Math.Round(power, 2),
+                    P = Math.Round(power, 1),
                 });
             }
 
@@ -65,10 +65,11 @@ namespace API.Services
             {
                 if (productionPlan.All(pp => pp.Name != plant.Name))
                 {
+                    decimal power = 0.0m;
                     productionPlan.Add(new PowerPlantOutput
                     {
                         Name = plant.Name,
-                        P = 0,
+                        P = Math.Round(power, 1),
                     });
                 }
             }
