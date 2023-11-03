@@ -19,3 +19,4 @@ global using Microsoft.AspNetCore.Http;
 global using System.Net;
 global using System.Text.Json;
 global using API.Errors;
+global using API.Enums;

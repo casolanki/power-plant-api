@@ -2,9 +2,9 @@ namespace API.DTOs
 {
     public class Fuels
     {
-         public double Gas { get; set; }
-        public double Kerosine { get; set; }
-        public double CO2 { get; set; }
-        public int Wind { get; set; }
+        public decimal Gas { get; set; }
+        public decimal Kerosine { get; set; }
+        public decimal CO2 { get; set; }
+        public decimal Wind { get; set; }
     }
 }

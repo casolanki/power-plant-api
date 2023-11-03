@@ -2,48 +2,75 @@ namespace API.Services
 {
     public class PowerPlantService
     {
-        public List<PowerPlantOutput> CalculateProductionPlan(Payload payload)
+        public List<PowerPlantOutput> CalculateProductionPlan(Payload payload) 
         {
-            List<PowerPlantOutput> productionPlan = new List<PowerPlantOutput>(); 
+            List<PowerPlantOutput> productionPlan = new List<PowerPlantOutput>();
 
-            double windPowerAvailable = (payload.Fuels.Wind / 100.0) * payload.PowerPlants
-            .Where(pp => pp.Type == "windturbine")
-            .Sum(pp => pp.Pmax);
+            // Calculate wind power
+            decimal windPower = payload.PowerPlants
+                .Where(pp => pp.Type == PowerPlantType.windturbine.ToString())
+                .Sum(pp => pp.Pmax * (payload.Fuels.Wind / 100));
 
-            double requiredLoad = payload.Load - windPowerAvailable;
-
-
-            var gasPlants = payload.PowerPlants
-                .Where(pp => pp.Type == "gasfired")
-                .ToList();
-
-
-            gasPlants.Sort((a, b) =>
-                (payload.Fuels.Gas / a.Efficiency).CompareTo(payload.Fuels.Gas / b.Efficiency));
-
-            foreach (var powerPlant in payload.PowerPlants)
+            // Allocate wind power to wind turbines
+            foreach (var windPlant in payload.PowerPlants.Where(pp => pp.Type == PowerPlantType.windturbine.ToString()))
             {
-                double powerToProduce = 0.0;
+                decimal windAllocation = (windPlant.Pmax * (payload.Fuels.Wind / 100));
+                productionPlan.Add(new PowerPlantOutput
+                {
+                    Name = windPlant.Name,
+                    P = Math.Round(windAllocation, 2)
+                });
+            }
 
-                if (powerPlant.Type == "windturbine")
+            // Calculate the required load to be met by non-wind power plants
+            decimal requiredLoad = payload.Load - windPower;
+
+            // Filter and sort gas-fired and turbojet plants by efficiency
+            var gasAndTurbojetPlants = payload.PowerPlants
+                .Where(pp => pp.Type == PowerPlantType.gasfired.ToString() || pp.Type == PowerPlantType.turbojet.ToString())
+                .OrderByDescending(pp => pp.Efficiency);
+
+            // Distribute the remaining load to gas-fired and turbojet plants
+            foreach (var plant in gasAndTurbojetPlants)
+            {
+                decimal efficiency = plant.Efficiency;
+                decimal costPerMWh = 0;
+
+                if (plant.Type == PowerPlantType.gasfired.ToString())
                 {
-                    powerToProduce = (powerPlant.Pmax * payload.Fuels.Wind / 100.0);
+                    costPerMWh = payload.Fuels.Gas / efficiency;
                 }
-                else if (powerPlant.Type == "gasfired")
+                else if (plant.Type == PowerPlantType.turbojet.ToString())
                 {
-                    powerToProduce = Math.Max(powerPlant.Pmin, Math.Min(powerPlant.Pmax, requiredLoad));
-                    requiredLoad -= powerToProduce;
+                    costPerMWh = payload.Fuels.Kerosine / efficiency;
                 }
-                else if (powerPlant.Type == "turbojet")
+
+                decimal power = 0;
+
+                if (requiredLoad > 0)
                 {
-                    powerToProduce = 0.0;
+                    power = Math.Max(plant.Pmin, Math.Min(requiredLoad, plant.Pmax));
+                    requiredLoad -= power;
                 }
 
                 productionPlan.Add(new PowerPlantOutput
                 {
-                    Name = powerPlant.Name,
-                    P = powerToProduce
+                    Name = plant.Name,
+                    P = Math.Round(power, 2),
                 });
+            }
+
+            // Set remaining gas and turbojet plants to 0 power
+            foreach (var plant in gasAndTurbojetPlants)
+            {
+                if (productionPlan.All(pp => pp.Name != plant.Name))
+                {
+                    productionPlan.Add(new PowerPlantOutput
+                    {
+                        Name = plant.Name,
+                        P = 0,
+                    });
+                }
             }
 
             return productionPlan;
